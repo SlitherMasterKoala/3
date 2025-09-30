@@ -281,25 +281,6 @@
 
             spawnGlow();
 
-            // Check if mouse/touch is over text elements (for mobile touch sliding)
-            if (touchCooldown > 0) {
-                touchCooldown--;
-            } else {
-                textElements.forEach(el => {
-                    const rect = el.getBoundingClientRect();
-                    if (mouse.x >= rect.left && mouse.x <= rect.right &&
-                        mouse.y >= rect.top && mouse.y <= rect.bottom) {
-                        if (lastTouchedElement !== el) {
-                            sparkleText(el);
-                            lastTouchedElement = el;
-                            touchCooldown = 30; // Cooldown ~0.5 seconds at 60fps
-                        }
-                    } else if (lastTouchedElement === el) {
-                        lastTouchedElement = null;
-                    }
-                });
-            }
-
             // Opening burst for first 5 seconds
             if (elapsed < 5000) {
                 if (Math.random() < 0.3) {
