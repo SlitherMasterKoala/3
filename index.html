@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        body {
+            background: #000;
+            position: relative;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        h1, p {
+            color: #fff4d9;
+            text-shadow:
+                0 0 15px rgba(255, 240, 200, 0.9),
+                0 0 25px rgba(255, 230, 180, 0.6),
+                0 0 35px rgba(255, 220, 150, 0.4);
+            transition: transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.5em;
+        }
+
+        .hover-glow {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 10vw;
+            }
+            
+            p {
+                font-size: 5vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="content">
+        <h1>🎉 Happy Birthday, Friend! 🎉</h1>
+        <p>Wishing you sparkles, joy, and cake!</p>
+    </div>
+
+    <script>
+        console.log('Script starting...');
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        console.log('Canvas:', canvas);
+        console.log('Context:', ctx);
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            console.log('Canvas resized to:', canvas.width, 'x', canvas.height);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+        document.addEventListener('mousemove', e => {
+            mouse = { x: e.clientX, y: e.clientY };
+        });
+
+        // Always track touch position, even during scrolling
+        document.addEventListener('touchstart', e => {
+            const t = e.touches[0];
+            mouse = { x: t.clientX, y: t.clientY };
+        }, { passive: true });
+
+        document.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            mouse = { x: t.clientX, y: t.clientY };
+        }, { passive: true });
+
+        let particles = [];
+
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function drawCircle(x, y, r, color, opacity = 1) {
+            if (r <= 0) return;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${opacity})`;
+            ctx.fill();
+        }
+
+        function drawStar(x, y, r, color, opacity = 1) {
+            if (r <= 0) return;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.beginPath();
+            
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+                const xPos = Math.cos(angle) * r;
+                const yPos = Math.sin(angle) * r;
+                
+                if (i === 0) {
+                    ctx.moveTo(xPos, yPos);
+                } else {
+                    ctx.lineTo(xPos, yPos);
+                }
+            }
+            
+            ctx.closePath();
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${opacity})`;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function spawnGlow() {
+            if (particles.filter(p => p.type === 'glow').length < 50) {
+                const baseR = random(3, 6);
+                particles.push({
+                    type: 'glow',
+                    x: random(0, canvas.width),
+                    y: random(0, canvas.height),
+                    r: baseR,
+                    baseR: baseR,
+                    grow: random(0.03, 0.07),
+                    dir: 1,
+                    dx: random(-0.2, 0.2),
+                    dy: random(-0.2, 0.2),
+                    color: { r: 255, g: 230, b: 150 },
+                    opacity: random(0.4, 0.8)
+                });
+            }
+        }
+
+        function spawnShootingStar() {
+            const startX = random(-50, canvas.width * 0.2);
+            const startY = random(0, canvas.height * 0.4);
+            
+            // Main shooting star - shooting more horizontally to the right
+            particles.push({
+                type: 'shoot',
+                x: startX,
+                y: startY,
+                dx: 6,
+                dy: 1.5,
+                r: 3.5,
+                color: { r: 255, g: 255, b: 255 },
+                opacity: 1,
+                fade: 0.01,
+                isMain: true
+            });
+            
+            // Trail particles - adjusted for horizontal movement
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    type: 'shoot',
+                    x: startX - (i * 7),
+                    y: startY - (i * 1.75),
+                    dx: 6,
+                    dy: 1.5,
+                    r: 2.5 - (i * 0.15),
+                    color: { r: 255, g: 255, b: 255 },
+                    opacity: 0.9 - (i * 0.06),
+                    fade: 0.012
+                });
+            }
+        }
+
+        function spawnCursorStar() {
+            const colors = [
+                { r: 255, g: 200, b: 200 },  // soft pink
+                { r: 200, g: 220, b: 255 },  // soft blue
+                { r: 255, g: 255, b: 200 },  // soft yellow
+                { r: 220, g: 200, b: 255 },  // soft purple
+                { r: 200, g: 255, b: 220 }   // soft green
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            particles.push({
+                type: 'cursorstar',
+                x: mouse.x,
+                y: mouse.y,
+                dx: random(-1.5, 1.5),
+                dy: random(-1.5, 1.5),
+                r: random(8, 12),
+                startR: random(8, 12),
+                color: color,
+                opacity: 0.9,
+                fade: 0.02,
+                shrink: 0.15,
+                rotation: random(0, Math.PI * 2)
+            });
+        }
+
+        function sparkleText(el) {
+            const rect = el.getBoundingClientRect();
+            
+            for (let i = 0; i < 5; i++) {
+                particles.push({
+                    type: 'sparkle',
+                    x: rect.left + random(0, rect.width),
+                    y: rect.top + random(0, rect.height),
+                    dx: random(-1, 1),
+                    dy: random(-1, 1),
+                    r: random(2, 3),
+                    color: { r: 255, g: 230, b: 150 },
+                    opacity: 1,
+                    fade: 0.03
+                });
+            }
+            
+            el.classList.add('hover-glow');
+            setTimeout(() => el.classList.remove('hover-glow'), 500);
+        }
+
+        document.querySelectorAll('h1, p').forEach(el => {
+            el.addEventListener('mouseenter', () => sparkleText(el));
+            el.addEventListener('touchstart', () => sparkleText(el), { passive: false });
+        });
+
+        let shootTimer = 0;
+        let frameCount = 0;
+        let startTime = Date.now();
+        let burstMode = true;
+        let nextBurstTime = random(10, 20) * 1000;
+        let regularShootTimer = 0;
+        let nextRegularShoot = random(2, 4);
+
+        function animate() {
+            frameCount++;
+            const elapsed = Date.now() - startTime;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            spawnGlow();
+
+            // Opening burst for first 5 seconds
+            if (elapsed < 5000) {
+                if (Math.random() < 0.3) {
+                    spawnShootingStar();
+                }
+            }
+            // After opening, do random bursts and regular patterns
+            else {
+                if (burstMode) {
+                    // Burst mode - lots of stars!
+                    if (Math.random() < 0.25) {
+                        spawnShootingStar();
+                    }
+                    // Exit burst after 2-3 seconds
+                    if (elapsed > nextBurstTime + random(2000, 3000)) {
+                        burstMode = false;
+                        nextBurstTime = elapsed + random(10000, 20000);
+                    }
+                } else {
+                    // Regular mode - spawn random number of stars at random intervals around 3 seconds
+                    regularShootTimer += 1 / 60;
+                    if (regularShootTimer > nextRegularShoot) {
+                        const numStars = Math.floor(random(1, 6));
+                        for (let i = 0; i < numStars; i++) {
+                            setTimeout(() => spawnShootingStar(), i * 150);
+                        }
+                        regularShootTimer = 0;
+                        nextRegularShoot = random(2, 4);
+                    }
+                    // Enter burst mode
+                    if (elapsed > nextBurstTime) {
+                        burstMode = true;
+                    }
+                }
+            }
+
+            if (Math.random() < 0.15) {
+                spawnCursorStar();
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                
+                p.x += p.dx;
+                p.y += p.dy;
+
+                if (p.type === 'glow') {
+                    // Mouse repulsion for glow particles
+                    const distX = p.x - mouse.x;
+                    const distY = p.y - mouse.y;
+                    const distance = Math.sqrt(distX * distX + distY * distY);
+                    const repulsionRadius = 100;
+                    
+                    if (distance < repulsionRadius && distance > 0) {
+                        const force = (repulsionRadius - distance) / repulsionRadius;
+                        const pushX = (distX / distance) * force * 2;
+                        const pushY = (distY / distance) * force * 2;
+                        p.x += pushX;
+                        p.y += pushY;
+                    }
+                    
+                    p.r += p.grow * p.dir;
+                    if (p.r > p.baseR + 2 || p.r < p.baseR - 2) {
+                        p.dir *= -1;
+                    }
+                    p.r = Math.max(0.1, p.r);
+                    drawCircle(p.x, p.y, p.r, p.color, p.opacity);
+                } else if (p.type === 'cursorstar') {
+                    p.opacity -= p.fade;
+                    p.r -= p.shrink;
+                    if (p.r > 0) {
+                        drawStar(p.x, p.y, p.r, p.color, p.opacity);
+                    }
+                } else {
+                    p.opacity -= p.fade;
+                    drawCircle(p.x, p.y, p.r, p.color, p.opacity);
+                }
+
+                if (p.opacity <= 0 || p.r <= 0 || p.x > canvas.width + 50 || p.y > canvas.height + 50 || p.x < -50 || p.y < -50) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            if (frameCount === 1) {
+                console.log('First frame rendered. Particles:', particles.length);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        console.log('Starting animation...');
+        animate();
+        
+        setTimeout(() => {
+            console.log('After 2 seconds - Particles:', particles.length);
+        }, 2000);
+    </script>
+</body>
+</html>
